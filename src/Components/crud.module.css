@@ -1,0 +1,22 @@
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 90vh;
+}
+.addBtn{
+    margin-bottom: 10px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* width: 100%; */
+}
+.input_wrapper{
+    width: 100%!important;
+    /* display: flex; */
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+
+
+}
