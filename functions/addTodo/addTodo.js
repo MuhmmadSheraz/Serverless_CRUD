@@ -21,11 +21,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
 
-      body: JSON.stringify({
-        todoID: result.ref.id,
-        todoTitle: result.data.title,
-        timeStamp: result.ts,
-      }),
+      body: JSON.stringify(result),
     };
   } catch (error) {
     return { statusCode: 500, body: error.toString() };

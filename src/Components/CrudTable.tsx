@@ -47,14 +47,6 @@ function createData(
   return { name, calories, fat, carbs, protein };
 }
 
-const rows = [
-  createData("Frozen yoghurt", 159, 6.0, 24, 4.0),
-  createData("Ice cream sandwich", 237, 9.0, 37, 4.3),
-  createData("Eclair", 262, 16.0, 24, 6.0),
-  createData("Cupcake", 305, 3.7, 67, 4.3),
-  createData("Gingerbread", 356, 16.0, 49, 3.9),
-];
-
 const useStyles = makeStyles({
   table: {
     minWidth: 700,
@@ -69,45 +61,74 @@ const useStyles = makeStyles({
 });
 
 export default function CrudTable() {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [input, setInput] = useState<string>("");
   const [todos, setTodos] = useState([]);
+  const [currentId, setCurrentId] = useState<string>("");
   //Use Efffect For Render All Todos On Reload
   useEffect(() => {
-    console.log("Get All TODOS");
     getList();
   }, []);
+  // Get ALL TODOS INITIALLY
   const getList = async () => {
-    console.log("Fetching TODOS");
     await fetch(`/.netlify/functions/getAllTodos`)
       .then((response) => response.json())
       .then((obj) => {
-        obj.data.map((x) => {
-          console.log(x);
-          let obj = {
-            todoTitle: x.data.title,
-            timeStamp: x.ts,
-            id: x.ref["@ref"].id,
-          };
-          setTodos((preVal) => {
-            return [...preVal, obj];
-          });
-        });
+        console.log(obj.data);
+        setTodos(obj.data);
+        setLoading(false);
       });
   };
   // CRUD Functions
+
+  // Add
   const add = async () => {
     await fetch(`/.netlify/functions/addTodo`, {
-      method: "post",
+      method: "POST",
       body: JSON.stringify(input),
     })
       .then((response) => response.json())
       .then((res) => {
-        console.log(res);
-
         setTodos((preval: any) => {
           return [...preval, res];
         });
+        setInput("");
       });
+  };
+  // Delete
+  const deleteTodo = (id: string) => {
+    setLoading(true);
+    console.log(id);
+    fetch("/.netlify/functions/deleteTodo", {
+      method: "delete",
+      body: JSON.stringify(id),
+    }).then(() => {
+      getList();
+    });
+  };
+  // Edit
+  const edit = (id, title) => {
+    setCurrentId(id);
+    setInput(title);
+    setIsEditing(true);
+  };
+  // Update
+  const updateTodo = () => {
+    setLoading(true);
+    console.log(input, currentId);
+    let obj = {
+      title: input,
+      id: currentId,
+    };
+    fetch("/.netlify/functions/updateTodo", {
+      method: "PUT",
+      body: JSON.stringify({ input, currentId }),
+    }).then(() => {
+      getList();
+      setInput("");
+      setIsEditing(false);
+    });
   };
 
   const classes = useStyles();
@@ -122,17 +143,29 @@ export default function CrudTable() {
               label="Task"
               variant="outlined"
               style={{ width: "100%" }}
+              value={input}
               onChange={(e) => setInput(e.target.value)}
             />
           </form>
-          <Button
-            className={style.addBtn}
-            variant="outlined"
-            color="secondary"
-            onClick={add}
-          >
-            Add
-          </Button>
+          {!isEditing ? (
+            <Button
+              className={style.addBtn}
+              variant="outlined"
+              color="secondary"
+              onClick={add}
+            >
+              Add
+            </Button>
+          ) : (
+            <Button
+              className={style.addBtn}
+              variant="outlined"
+              color="primary"
+              onClick={updateTodo}
+            >
+              Update
+            </Button>
+          )}
         </div>
         <TableContainer component={Paper}>
           <Table className={classes.table} aria-label="customized table">
@@ -147,22 +180,30 @@ export default function CrudTable() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {todos.length ? (
+              {todos.length && !loading ? (
                 todos.map((row) => (
-                  <StyledTableRow key={row.id}>
+                  <StyledTableRow key={row.ref["@ref"].id}>
                     <StyledTableCell component="th" scope="row">
-                      {row.todoTitle}
+                      {row.data.title}
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {row.timeStamp}
+                      {row.data.ts}
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      <Button variant="contained" color="primary">
+                      <Button
+                        onClick={() => edit(row.ref["@ref"].id, row.data.title)}
+                        variant="contained"
+                        color="primary"
+                      >
                         Edit
                       </Button>
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      <Button variant="contained" color="secondary">
+                      <Button
+                        onClick={() => deleteTodo(row.ref["@ref"].id)}
+                        variant="contained"
+                        color="secondary"
+                      >
                         Delete
                       </Button>
                     </StyledTableCell>
