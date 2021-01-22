@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import style from "./crud.module.css";
 import {
   withStyles,
@@ -13,7 +13,7 @@ import TableContainer from "@material-ui/core/TableContainer";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
-import { Button, TextField } from "@material-ui/core";
+import { Button, CircularProgress, TextField } from "@material-ui/core";
 
 const StyledTableCell = withStyles((theme: Theme) =>
   createStyles({
@@ -69,6 +69,47 @@ const useStyles = makeStyles({
 });
 
 export default function CrudTable() {
+  const [input, setInput] = useState<string>("");
+  const [todos, setTodos] = useState([]);
+  //Use Efffect For Render All Todos On Reload
+  useEffect(() => {
+    console.log("Get All TODOS");
+    getList();
+  }, []);
+  const getList = async () => {
+    console.log("Fetching TODOS");
+    await fetch(`/.netlify/functions/getAllTodos`)
+      .then((response) => response.json())
+      .then((obj) => {
+        obj.data.map((x) => {
+          console.log(x);
+          let obj = {
+            todoTitle: x.data.title,
+            timeStamp: x.ts,
+            id: x.ref["@ref"].id,
+          };
+          setTodos((preVal) => {
+            return [...preVal, obj];
+          });
+        });
+      });
+  };
+  // CRUD Functions
+  const add = async () => {
+    await fetch(`/.netlify/functions/addTodo`, {
+      method: "post",
+      body: JSON.stringify(input),
+    })
+      .then((response) => response.json())
+      .then((res) => {
+        console.log(res);
+
+        setTodos((preval: any) => {
+          return [...preval, res];
+        });
+      });
+  };
+
   const classes = useStyles();
 
   return (
@@ -81,10 +122,16 @@ export default function CrudTable() {
               label="Task"
               variant="outlined"
               style={{ width: "100%" }}
+              onChange={(e) => setInput(e.target.value)}
             />
           </form>
-          <Button className={style.addBtn} variant="outlined" color="secondary">
-            Secondary
+          <Button
+            className={style.addBtn}
+            variant="outlined"
+            color="secondary"
+            onClick={add}
+          >
+            Add
           </Button>
         </div>
         <TableContainer component={Paper}>
@@ -100,26 +147,32 @@ export default function CrudTable() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => (
-                <StyledTableRow key={row.name}>
-                  <StyledTableCell component="th" scope="row">
-                    {row.name}
-                  </StyledTableCell>
-                  <StyledTableCell align="right">
-                    {row.calories}
-                  </StyledTableCell>
-                  <StyledTableCell align="right">
-                    <Button variant="contained" color="primary">
-                      Edit
-                    </Button>
-                  </StyledTableCell>
-                  <StyledTableCell align="right">
-                    <Button variant="contained" color="secondary">
-                      Delete
-                    </Button>
-                  </StyledTableCell>
-                </StyledTableRow>
-              ))}
+              {todos.length ? (
+                todos.map((row) => (
+                  <StyledTableRow key={row.id}>
+                    <StyledTableCell component="th" scope="row">
+                      {row.todoTitle}
+                    </StyledTableCell>
+                    <StyledTableCell align="right">
+                      {row.timeStamp}
+                    </StyledTableCell>
+                    <StyledTableCell align="right">
+                      <Button variant="contained" color="primary">
+                        Edit
+                      </Button>
+                    </StyledTableCell>
+                    <StyledTableCell align="right">
+                      <Button variant="contained" color="secondary">
+                        Delete
+                      </Button>
+                    </StyledTableCell>
+                  </StyledTableRow>
+                ))
+              ) : (
+                <div className={style.loader}>
+                  <CircularProgress color="secondary" size={50} />
+                </div>
+              )}
             </TableBody>
           </Table>
         </TableContainer>

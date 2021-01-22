@@ -18,6 +18,7 @@
   "dependencies": {
     "@material-ui/core": "^4.11.2",
     "@material-ui/icons": "^4.11.2",
+    "faunadb": "^4.0.0",
     "gatsby": "^2.26.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
