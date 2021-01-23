@@ -70,12 +70,10 @@ export default function CrudTable() {
     getList();
   }, []);
   // Get ALL TODOS INITIALLY
-  const width = typeof window !== "undefined" && window;
   const getList = async () => {
     await fetch(`/.netlify/functions/getAllTodos`)
       .then((response) => response.json())
       .then((obj) => {
-        console.log(obj.data);
         setTodos(obj.data);
         setLoading(false);
       });
@@ -85,7 +83,6 @@ export default function CrudTable() {
   // Delete
   const deleteTodo = (id: string) => {
     setLoading(true);
-    console.log(id);
     fetch("/.netlify/functions/deleteTodo", {
       method: "delete",
       body: JSON.stringify(id),
@@ -96,9 +93,7 @@ export default function CrudTable() {
   };
   // Edit
   const edit = (id: string, title: string) => {
-    console.log("Edit===>", id, title);
     setCurrentId(id);
-    setEditValue(title);
     setVal(title);
     setIsEditing(true);
   };
@@ -116,43 +111,42 @@ export default function CrudTable() {
             enableReinitialize={true}
             initialValues={{
               id: currentId,
-              todoInput: editValue == "" ? "" : editValue,
+              todoInput: val ? val : "",
               // todoInput: "",
             }}
-            onSubmit={(values: any) => {
-              console.log(values);
+            onSubmit={(values: any, actions: any) => {
               if (!isEditing) {
                 setLoading(true);
-
-                console.log("Add ", val);
                 fetch(`/.netlify/functions/addTodo`, {
                   method: "POST",
                   body: JSON.stringify(val),
                 })
                   .then((response) => response.json())
                   .then((res) => {
-                    setVal("");
                     setTodos((preval: any) => {
                       return [...preval, res];
                     });
+                    actions.resetForm({
+                      values: {
+                        id: "",
+                        todoInput: "",
+                      },
+                    });
+                    setVal("");
                     setLoading(false);
                   });
               } else if (isEditing) {
                 setLoading(true);
 
-                console.log("values For Update", values);
 
-                console.log("Updating", values.id);
 
                 fetch("/.netlify/functions/updateTodo", {
                   method: "PUT",
                   body: JSON.stringify({ values }),
                 }).then((res) => {
-                  console.log("Update Response===>", res);
                   getList();
                   setVal("");
                   setIsEditing(false);
-                  console.log("Updated");
                   setLoading(false);
                 });
               }
@@ -160,16 +154,6 @@ export default function CrudTable() {
             validationSchema={validation}
           >
             {(formik) => {
-              const {
-                values,
-                handleChange,
-                handleSubmit,
-                errors,
-                touched,
-                handleBlur,
-                isValid,
-                dirty,
-              } = formik;
               return (
                 <Form
                   className={style.form}
@@ -211,7 +195,6 @@ export default function CrudTable() {
                       className={style.addBtn}
                       variant="outlined"
                       color="primary"
-                      disabled={!(dirty && isValid)}
                     >
                       <DoneOutline />
                     </Button>
