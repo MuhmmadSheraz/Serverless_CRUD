@@ -1,4 +1,5 @@
 const { query } = require("faunadb");
+const { FAUNADB_ADMIN_SECRET } = process.env;
 
 var faunadb = require("faunadb"),
   q = faunadb.query;
@@ -6,7 +7,7 @@ var faunadb = require("faunadb"),
 exports.handler = async (event) => {
   try {
     var client = new faunadb.Client({
-      secret: process.env.FAUNADB_ADMIN_SECRET,
+      secret: FAUNADB_ADMIN_SECRET,
     });
     const result = await client.query(
       q.Map(

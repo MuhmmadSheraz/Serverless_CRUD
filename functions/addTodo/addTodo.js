@@ -1,4 +1,5 @@
 const { query } = require("faunadb");
+const { FAUNADB_ADMIN_SECRET } = process.env;
 
 // Initialize FaunaDB
 var faunadb = require("faunadb"),
@@ -11,7 +12,7 @@ exports.handler = async (event, context) => {
     }
     let reqObj = JSON.parse(event.body);
     var client = new faunadb.Client({
-      secret: process.env.FAUNADB_ADMIN_SECRET,
+      secret: FAUNADB_ADMIN_SECRET,
     });
     var result = await client.query(
       q.Create(q.Collection("CRUD"), {
