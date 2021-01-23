@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from "react";
 import style from "./crud.module.css";
 import { Edit, Delete, Add, DoneOutline, Done } from "@material-ui/icons";
-import {
-  ToastsContainer,
-  ToastsContainerPosition,
-  ToastsStore,
-} from "react-toasts";
 
 import {
   withStyles,
@@ -70,12 +65,12 @@ export default function CrudTable() {
   const [todos, setTodos] = useState([]);
   const [currentId, setCurrentId] = useState<string>("");
   const [editValue, setEditValue] = useState("");
-  const [showSnackBar, setShowSnackBar] = useState<boolean>(false);
   //Use Efffect For Render All Todos On Reload
   useEffect(() => {
     getList();
   }, []);
   // Get ALL TODOS INITIALLY
+  const width = typeof window !== "undefined" && window;
   const getList = async () => {
     await fetch(`/.netlify/functions/getAllTodos`)
       .then((response) => response.json())
@@ -96,7 +91,6 @@ export default function CrudTable() {
       body: JSON.stringify(id),
     }).then(() => {
       getList();
-      ToastsStore.error("Todo Deleted!");
       setLoading(false);
     });
   };
@@ -116,13 +110,6 @@ export default function CrudTable() {
 
   return (
     <div className={style.center}>
-      {/* <button onClick={() => ToastsStore.success("Todo Added")}>
-        Click me
-      </button> */}
-      <ToastsContainer
-        store={ToastsStore}
-        position={ToastsContainerPosition.TOP_CENTER}
-      />
       <div style={{ width: "100%", paddingBottom: "20px" }}>
         <div className={style.input_wrapper}>
           <Formik
@@ -149,8 +136,6 @@ export default function CrudTable() {
                       return [...preval, res];
                     });
                     setLoading(false);
-
-                    ToastsStore.success("Todo Added!");
                   });
               } else if (isEditing) {
                 setLoading(true);
@@ -169,8 +154,6 @@ export default function CrudTable() {
                   setIsEditing(false);
                   console.log("Updated");
                   setLoading(false);
-
-                  ToastsStore.info("Todo Updated!");
                 });
               }
             }}
