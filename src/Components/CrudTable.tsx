@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
 import style from "./crud.module.css";
-import { Edit, Delete, Add } from "@material-ui/icons";
+import { Edit, Delete, Add, DoneOutline, Done } from "@material-ui/icons";
+import {
+  ToastsContainer,
+  ToastsContainerPosition,
+  ToastsStore,
+} from "react-toasts";
 
 import {
   withStyles,
@@ -15,14 +20,13 @@ import TableContainer from "@material-ui/core/TableContainer";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
-import { Button, CircularProgress, TextField } from "@material-ui/core";
 import {
-  ErrorMessage,
-  Field,
-  Form,
-  Formik,
-  setNestedObjectValues,
-} from "formik";
+  Button,
+  CircularProgress,
+  Snackbar,
+  TextField,
+} from "@material-ui/core";
+import { ErrorMessage, Field, Form, Formik } from "formik";
 import * as Yup from "yup";
 
 const StyledTableCell = withStyles((theme: Theme) =>
@@ -47,23 +51,12 @@ const StyledTableRow = withStyles((theme: Theme) =>
   })
 )(TableRow);
 
-function createData(
-  name: string,
-  calories: number,
-  fat: number,
-  carbs: number,
-  protein: number
-) {
-  return { name, calories, fat, carbs, protein };
-}
-
 const useStyles = makeStyles({
   table: {
     minWidth: 700,
   },
   root: {
     "& > *": {
-      // margin: theme.spacing(1),
       width: "100%",
       margin: "10px 0px",
     },
@@ -77,6 +70,7 @@ export default function CrudTable() {
   const [todos, setTodos] = useState([]);
   const [currentId, setCurrentId] = useState<string>("");
   const [editValue, setEditValue] = useState("");
+  const [showSnackBar, setShowSnackBar] = useState<boolean>(false);
   //Use Efffect For Render All Todos On Reload
   useEffect(() => {
     getList();
@@ -93,20 +87,6 @@ export default function CrudTable() {
   };
   // CRUD Functions
 
-  // Add
-  const add = async () => {
-    console.log("Add ", val);
-    await fetch(`/.netlify/functions/addTodo`, {
-      method: "POST",
-      body: JSON.stringify(val),
-    })
-      .then((response) => response.json())
-      .then((res) => {
-        setTodos((preval: any) => {
-          return [...preval, res];
-        });
-      });
-  };
   // Delete
   const deleteTodo = (id: string) => {
     setLoading(true);
@@ -116,6 +96,8 @@ export default function CrudTable() {
       body: JSON.stringify(id),
     }).then(() => {
       getList();
+      ToastsStore.error("Todo Deleted!");
+      setLoading(false);
     });
   };
   // Edit
@@ -129,23 +111,32 @@ export default function CrudTable() {
 
   const classes = useStyles();
   const validation = Yup.object({
-    todoInput: Yup.string().required("required"),
+    todoInput: Yup.string().required("Required Field"),
   });
 
   return (
     <div className={style.center}>
-      <div style={{ width: "100%" }}>
+      {/* <button onClick={() => ToastsStore.success("Todo Added")}>
+        Click me
+      </button> */}
+      <ToastsContainer
+        store={ToastsStore}
+        position={ToastsContainerPosition.TOP_CENTER}
+      />
+      <div style={{ width: "100%", paddingBottom: "20px" }}>
         <div className={style.input_wrapper}>
           <Formik
             enableReinitialize={true}
             initialValues={{
               id: currentId,
-              message: editValue == "" ? "" : editValue,
+              todoInput: editValue == "" ? "" : editValue,
+              // todoInput: "",
             }}
-            onSubmit={(values: any, actions: any) => {
-              console.log("values======>", values);
-              console.log("State", val);
+            onSubmit={(values: any) => {
+              console.log(values);
               if (!isEditing) {
+                setLoading(true);
+
                 console.log("Add ", val);
                 fetch(`/.netlify/functions/addTodo`, {
                   method: "POST",
@@ -154,13 +145,16 @@ export default function CrudTable() {
                   .then((response) => response.json())
                   .then((res) => {
                     setVal("");
-
                     setTodos((preval: any) => {
                       return [...preval, res];
                     });
-                    //resetForm
+                    setLoading(false);
+
+                    ToastsStore.success("Todo Added!");
                   });
               } else if (isEditing) {
+                setLoading(true);
+
                 console.log("values For Update", values);
 
                 console.log("Updating", values.id);
@@ -174,55 +168,74 @@ export default function CrudTable() {
                   setVal("");
                   setIsEditing(false);
                   console.log("Updated");
+                  setLoading(false);
+
+                  ToastsStore.info("Todo Updated!");
                 });
               }
             }}
             validationSchema={validation}
           >
-            {(formik) => (
-              <Form
-                onSubmit={formik.handleSubmit}
-                onChange={formik.handleChange}
-              >
-                <Field
-                  name="todoInput"
-                  placeholder="Todo Input"
-                  as={TextField}
-                  handleSubmit
-                  onChange={(e) => setVal(e.target.value)}
-                  value={val}
-                />
-                {
-                  <ErrorMessage
+            {(formik) => {
+              const {
+                values,
+                handleChange,
+                handleSubmit,
+                errors,
+                touched,
+                handleBlur,
+                isValid,
+                dirty,
+              } = formik;
+              return (
+                <Form
+                  className={style.form}
+                  onSubmit={formik.handleSubmit}
+                  onChange={formik.handleChange}
+                >
+                  <Field
+                    className={style.field}
+                    as={TextField}
                     name="todoInput"
-                    render={(mes) => <span>{mes}</span>}
+                    handleSubmit
+                    onChange={(e) => setVal(e.target.value)}
+                    id="outlined-basic"
+                    label="Todo Task"
+                    variant="outlined"
+                    value={val}
                   />
-                }
+                  <div>
+                    <ErrorMessage
+                      name="todoInput"
+                      render={(mes) => (
+                        <span
+                          style={{ display: "block " }}
+                          className={style.red}
+                        >
+                          {mes}
+                        </span>
+                      )}
+                    />
+                  </div>
 
-                {!isEditing ? (
-                  <Button
-                    className={style.addBtn}
-                    variant="outlined"
-                    color="secondary"
-                    // onClick={add}
-                    type="submit"
-                    // disabled={isSubmitting}
-                  >
-                    {/* Add  */}
-                    <Add />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    className={style.addBtn}
-                    variant="outlined"
-                    color="primary"
-                  >
-                    Update
-                  </Button>
-                )}
-              </Form>
-            )}
+                  {!isEditing ? (
+                    <Button className={style.addBtn} type="submit" size="large">
+                      <Done /> Add
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      className={style.addBtn}
+                      variant="outlined"
+                      color="primary"
+                      disabled={!(dirty && isValid)}
+                    >
+                      <DoneOutline />
+                    </Button>
+                  )}
+                </Form>
+              );
+            }}
           </Formik>
         </div>
         <TableContainer component={Paper}>
@@ -230,7 +243,6 @@ export default function CrudTable() {
             <TableHead>
               <TableRow>
                 <StyledTableCell>Title</StyledTableCell>
-                <StyledTableCell align="right">Updated At</StyledTableCell>
                 <StyledTableCell align="right">Edit</StyledTableCell>
                 <StyledTableCell align="right" color="secondary">
                   Delete
@@ -245,9 +257,7 @@ export default function CrudTable() {
                     <StyledTableCell component="th" scope="row">
                       {row.data.title}
                     </StyledTableCell>
-                    <StyledTableCell align="right">
-                      {/* {new Date(row.ts)} */}
-                    </StyledTableCell>
+
                     <StyledTableCell align="right">
                       <Button
                         onClick={() => edit(row.ref["@ref"].id, row.data.title)}

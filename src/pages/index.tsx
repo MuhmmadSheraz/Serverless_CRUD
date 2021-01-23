@@ -28,13 +28,7 @@ export default function Index() {
 
   return (
     <div className={classes.root}>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" className={classes.title}>
-            Serverless CRUD
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <h1 className="heading">Serverless CRUD </h1>
       <Container >
         <CrudTable />
       </Container>

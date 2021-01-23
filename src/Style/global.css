@@ -3,3 +3,9 @@
   padding: 0;
   box-sizing: border-box;
 }
+@import url('https://fonts.googleapis.com/css2?family=Balsamiq+Sans&display=swap');
+.heading{
+  text-align: center;
+  padding: 15px 0px;
+  font-family: 'Balsamiq Sans', cursive;
+}
