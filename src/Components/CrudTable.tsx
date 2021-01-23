@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import style from "./crud.module.css";
+import { Edit, Delete, Add } from "@material-ui/icons";
+
 import {
   withStyles,
   Theme,
@@ -14,6 +16,14 @@ import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
 import { Button, CircularProgress, TextField } from "@material-ui/core";
+import {
+  ErrorMessage,
+  Field,
+  Form,
+  Formik,
+  setNestedObjectValues,
+} from "formik";
+import * as Yup from "yup";
 
 const StyledTableCell = withStyles((theme: Theme) =>
   createStyles({
@@ -63,9 +73,10 @@ const useStyles = makeStyles({
 export default function CrudTable() {
   const [loading, setLoading] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [input, setInput] = useState<string>("");
+  const [val, setVal] = useState<string>("");
   const [todos, setTodos] = useState([]);
   const [currentId, setCurrentId] = useState<string>("");
+  const [editValue, setEditValue] = useState("");
   //Use Efffect For Render All Todos On Reload
   useEffect(() => {
     getList();
@@ -84,16 +95,16 @@ export default function CrudTable() {
 
   // Add
   const add = async () => {
+    console.log("Add ", val);
     await fetch(`/.netlify/functions/addTodo`, {
       method: "POST",
-      body: JSON.stringify(input),
+      body: JSON.stringify(val),
     })
       .then((response) => response.json())
       .then((res) => {
         setTodos((preval: any) => {
           return [...preval, res];
         });
-        setInput("");
       });
   };
   // Delete
@@ -108,64 +119,111 @@ export default function CrudTable() {
     });
   };
   // Edit
-  const edit = (id, title) => {
+  const edit = (id: string, title: string) => {
+    console.log("Edit===>", id, title);
     setCurrentId(id);
-    setInput(title);
+    setEditValue(title);
+    setVal(title);
     setIsEditing(true);
-  };
-  // Update
-  const updateTodo = () => {
-    setLoading(true);
-    console.log(input, currentId);
-    let obj = {
-      title: input,
-      id: currentId,
-    };
-    fetch("/.netlify/functions/updateTodo", {
-      method: "PUT",
-      body: JSON.stringify({ input, currentId }),
-    }).then(() => {
-      getList();
-      setInput("");
-      setIsEditing(false);
-    });
   };
 
   const classes = useStyles();
+  const validation = Yup.object({
+    todoInput: Yup.string().required("required"),
+  });
 
   return (
     <div className={style.center}>
       <div style={{ width: "100%" }}>
         <div className={style.input_wrapper}>
-          <form className={classes.root} noValidate autoComplete="off">
-            <TextField
-              id="outlined-basic"
-              label="Task"
-              variant="outlined"
-              style={{ width: "100%" }}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
-          </form>
-          {!isEditing ? (
-            <Button
-              className={style.addBtn}
-              variant="outlined"
-              color="secondary"
-              onClick={add}
-            >
-              Add
-            </Button>
-          ) : (
-            <Button
-              className={style.addBtn}
-              variant="outlined"
-              color="primary"
-              onClick={updateTodo}
-            >
-              Update
-            </Button>
-          )}
+          <Formik
+            enableReinitialize={true}
+            initialValues={{
+              id: currentId,
+              message: editValue == "" ? "" : editValue,
+            }}
+            onSubmit={(values: any, actions: any) => {
+              console.log("values======>", values);
+              console.log("State", val);
+              if (!isEditing) {
+                console.log("Add ", val);
+                fetch(`/.netlify/functions/addTodo`, {
+                  method: "POST",
+                  body: JSON.stringify(val),
+                })
+                  .then((response) => response.json())
+                  .then((res) => {
+                    setVal("");
+
+                    setTodos((preval: any) => {
+                      return [...preval, res];
+                    });
+                    //resetForm
+                  });
+              } else if (isEditing) {
+                console.log("values For Update", values);
+
+                console.log("Updating", values.id);
+
+                fetch("/.netlify/functions/updateTodo", {
+                  method: "PUT",
+                  body: JSON.stringify({ values }),
+                }).then((res) => {
+                  console.log("Update Response===>", res);
+                  getList();
+                  setVal("");
+                  setIsEditing(false);
+                  console.log("Updated");
+                });
+              }
+            }}
+            validationSchema={validation}
+          >
+            {(formik) => (
+              <Form
+                onSubmit={formik.handleSubmit}
+                onChange={formik.handleChange}
+              >
+                <Field
+                  name="todoInput"
+                  placeholder="Todo Input"
+                  as={TextField}
+                  handleSubmit
+                  onChange={(e) => setVal(e.target.value)}
+                  value={val}
+                />
+                {
+                  <ErrorMessage
+                    name="todoInput"
+                    render={(mes) => <span>{mes}</span>}
+                  />
+                }
+
+                {!isEditing ? (
+                  <Button
+                    className={style.addBtn}
+                    variant="outlined"
+                    color="secondary"
+                    // onClick={add}
+                    type="submit"
+                    // disabled={isSubmitting}
+                  >
+                    {/* Add  */}
+                    <Add />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    className={style.addBtn}
+                    variant="outlined"
+                    color="primary"
+                  >
+                    Update
+                  </Button>
+                )}
+              </Form>
+            )}
+          </Formik>
         </div>
         <TableContainer component={Paper}>
           <Table className={classes.table} aria-label="customized table">
@@ -182,12 +240,13 @@ export default function CrudTable() {
             <TableBody>
               {todos.length && !loading ? (
                 todos.map((row) => (
+                  // let date=newDate(row.ts)
                   <StyledTableRow key={row.ref["@ref"].id}>
                     <StyledTableCell component="th" scope="row">
                       {row.data.title}
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {row.data.ts}
+                      {/* {new Date(row.ts)} */}
                     </StyledTableCell>
                     <StyledTableCell align="right">
                       <Button
@@ -195,7 +254,8 @@ export default function CrudTable() {
                         variant="contained"
                         color="primary"
                       >
-                        Edit
+                        {/* Edit */}
+                        <Edit />
                       </Button>
                     </StyledTableCell>
                     <StyledTableCell align="right">
@@ -204,7 +264,8 @@ export default function CrudTable() {
                         variant="contained"
                         color="secondary"
                       >
-                        Delete
+                        {/* Delete */}
+                        <Delete />
                       </Button>
                     </StyledTableCell>
                   </StyledTableRow>

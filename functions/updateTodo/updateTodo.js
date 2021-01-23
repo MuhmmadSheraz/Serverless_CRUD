@@ -9,8 +9,8 @@ exports.handler = async (event, context) => {
 
     const requestedData = JSON.parse(event.body);
     const result = await client.query(
-      q.Update(q.Ref(q.Collection("CRUD"), requestedData.currentId), {
-        data: { title: requestedData.input },
+      q.Update(q.Ref(q.Collection("CRUD"), requestedData.values.id), {
+        data: { title: requestedData.values.todoInput },
       })
     );
 
