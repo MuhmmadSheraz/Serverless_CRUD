@@ -137,13 +137,10 @@ export default function CrudTable() {
                   });
               } else if (isEditing) {
                 setLoading(true);
-
-
-
                 fetch("/.netlify/functions/updateTodo", {
                   method: "PUT",
                   body: JSON.stringify({ values }),
-                }).then((res) => {
+                }).then(() => {
                   getList();
                   setVal("");
                   setIsEditing(false);

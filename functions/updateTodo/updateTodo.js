@@ -1,13 +1,16 @@
 const faunadb = require("faunadb"),
   q = faunadb.query;
+  const dotenv = require("dotenv");
 
+  dotenv.config();
 exports.handler = async (event, context) => {
   try {
     const client = new faunadb.Client({
-      secret: process.env.FAUNADB_ADMIN_SECRET,
+      secret:process.env.FAUANAKEY,
     });
 
     const requestedData = JSON.parse(event.body);
+    console.log(requestedData)
     const result = await client.query(
       q.Update(q.Ref(q.Collection("CRUD"), requestedData.values.id), {
         data: { title: requestedData.values.todoInput },

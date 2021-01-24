@@ -1,10 +1,12 @@
 const faunadb = require("faunadb"),
   q = faunadb.query;
+  const dotenv = require("dotenv");
 
+  dotenv.config();
 exports.handler = async (event, context) => {
   try {
     const client = new faunadb.Client({
-      secret: process.env.FAUNADB_ADMIN_SECRET,
+      secret:process.env.FAUANAKEY,
     });
 
     const reqId = JSON.parse(event.body);
